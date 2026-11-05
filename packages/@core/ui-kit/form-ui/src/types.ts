@@ -616,6 +616,8 @@ interface FormSchemaBody<TValues extends FormValues = FormValues> extends Omit<
   FormCommonConfig<TValues>,
   'componentProps'
 > {
+  /** 数组编辑器内该列的 CSS Grid 轨道宽度，默认 minmax(0, 1fr) */
+  columnWidth?: string;
   /** 默认值 */
   defaultValue?: any;
   /** 依赖 */

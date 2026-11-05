@@ -84,7 +84,7 @@ const canRemove = computed(() => arrayLength.value > props.min);
 const gridStyle = computed(() => {
   const columns = [
     ...(props.showIndex ? ['3rem'] : []),
-    ...props.schema.map(() => 'minmax(0, 1fr)'),
+    ...props.schema.map((column) => column.columnWidth || 'minmax(0, 1fr)'),
     '4rem',
   ];
   return {

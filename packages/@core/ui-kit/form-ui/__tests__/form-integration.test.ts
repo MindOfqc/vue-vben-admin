@@ -729,6 +729,75 @@ describe('useVbenForm integration', () => {
     expect(await formApi.validate()).toEqual({ errors: {}, valid: true });
   });
 
+  it.each([true, false])(
+    'keeps custom array column widths aligned when showIndex is %s',
+    async (showIndex) => {
+      const [Form, formApi] = useVbenForm({
+        schema: [
+          {
+            arrayProps: { showIndex },
+            children: [
+              {
+                columnWidth: '100px',
+                component: TestInput,
+                fieldName: 'name',
+                label: 'Name',
+              },
+              {
+                columnWidth: 'minmax(0, 2.5fr)',
+                component: TestInput,
+                fieldName: 'phone',
+                label: 'Phone',
+              },
+              {
+                component: TestInput,
+                fieldName: 'role',
+                label: 'Role',
+              },
+            ],
+            defaultValue: [{ name: 'Ada', phone: '123', role: 'owner' }],
+            fieldName: 'contacts',
+            type: 'array',
+          },
+        ],
+        showDefaultActions: false,
+      });
+      const wrapper = mount(Form);
+      wrappers.push(wrapper);
+      await flushPromises();
+
+      const templates = () =>
+        wrapper
+          .findAll('div')
+          .map((node) => node.element.style.gridTemplateColumns)
+          .filter(Boolean);
+      const expected = `${showIndex ? '3rem ' : ''}100px minmax(0, 2.5fr) minmax(0, 1fr) 4rem`;
+      expect(templates()).toEqual([expected, expected]);
+
+      formApi.form.pushFieldValue('contacts', {
+        name: 'Grace',
+        phone: '456',
+        role: 'viewer',
+      });
+      await flushPromises();
+      expect(templates()).toEqual([expected, expected, expected]);
+
+      await formApi.form.removeFieldValue('contacts', 0);
+      await flushPromises();
+      expect(templates()).toEqual([expected, expected]);
+      expect(await formApi.getValues()).toEqual({
+        contacts: [{ name: 'Grace', phone: '456', role: 'viewer' }],
+      });
+
+      formApi.updateSchema([
+        { columnWidth: '8rem', fieldName: 'contacts.name' },
+      ]);
+      await flushPromises();
+      const updated = `${showIndex ? '3rem ' : ''}8rem minmax(0, 2.5fr) minmax(0, 1fr) 4rem`;
+      expect(templates()).toEqual([updated, updated]);
+    },
+  );
+
   it('keeps array values and rendered rows aligned after mutations', async () => {
     const [Form, formApi] = useVbenForm({
       schema: [

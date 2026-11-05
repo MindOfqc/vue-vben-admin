@@ -645,6 +645,8 @@ export interface FormFieldSchema<
 > extends FormCommonConfig {
   /** 组件 */
   component: Component | T;
+  /** 数组编辑器内该列的 CSS Grid 轨道宽度，默认 minmax(0, 1fr) */
+  columnWidth?: string;
   /** 组件参数 */
   componentProps?:
     | MaybeComponentProps

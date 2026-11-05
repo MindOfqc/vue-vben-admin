@@ -97,6 +97,20 @@ contacts[0].name;
 - `labelClass`
 - `controlClass`
 
+### `children[].columnWidth`
+
+数组编辑器的每个子字段可以通过 `columnWidth` 设置单个 CSS Grid 轨道，例如 `100px`、`8rem` 或 `minmax(0, 2.5fr)`。未设置或传入空字符串时，继续使用 `minmax(0, 1fr)` 等分剩余空间。
+
+```ts
+children: [
+  { component: 'Input', fieldName: 'name', label: '姓名', columnWidth: '100px' },
+  { component: 'Input', fieldName: 'phone', label: '电话', columnWidth: 'minmax(0, 2.5fr)' },
+  { component: 'Input', fieldName: 'remark', label: '备注' },
+],
+```
+
+表头和每一行使用同一组列宽，隐藏序号列和新增、删除行时仍保持对齐。列宽仅作用于 `sm` 及以上屏幕的 Grid 布局；小屏幕继续竖向排列字段。`formItemClass` 继续用于表单项的 CSS 类名，不用于设置轨道宽度。
+
 ### `arrayProps`
 
 传给数组编辑器的配置：
