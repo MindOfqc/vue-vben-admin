@@ -71,6 +71,8 @@ export function useExpandable(props: FormRenderProps) {
     const rowHeights = containerStyles
       .getPropertyValue('grid-template-rows')
       .split(' ');
+    const rowGap =
+      Number.parseFloat(containerStyles.getPropertyValue('row-gap')) || 0;
 
     const containerRect = container?.getBoundingClientRect();
 
@@ -83,6 +85,9 @@ export function useExpandable(props: FormRenderProps) {
       let cumulativeHeight = 0;
 
       for (const [i, rowHeight] of rowHeights.entries()) {
+        if (i > 0) {
+          cumulativeHeight += rowGap;
+        }
         cumulativeHeight += Number.parseFloat(rowHeight);
         if (itemTop < cumulativeHeight) {
           rowStart = i + 1;
