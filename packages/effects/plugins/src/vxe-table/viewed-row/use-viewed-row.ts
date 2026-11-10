@@ -205,11 +205,25 @@ export function useViewedRow<T = any>(
   const viewedSet = shallowRef<Set<number | string>>(new Set());
 
   // ========== 持久化（防抖） ==========
+  // Serialize writes and clears so a slow older write cannot undo a clear.
+  let persistenceQueue = Promise.resolve();
+
+  function enqueuePersistence(
+    operation: () => Promise<void>,
+    errorMessage: string,
+  ) {
+    persistenceQueue = persistenceQueue.then(operation).catch((error) => {
+      console.error(errorMessage, error);
+    });
+  }
+
   function persistImmediate() {
     if (!adapter) return;
-    adapter.setKeys([...viewedSet.value]).catch((error) => {
-      console.error('[viewedRow] persist failed:', error);
-    });
+    const keys = [...viewedSet.value];
+    enqueuePersistence(
+      () => adapter.setKeys(keys),
+      '[viewedRow] persist failed:',
+    );
   }
 
   const persist = useDebounceFn(persistImmediate, 300);
@@ -366,9 +380,10 @@ export function useViewedRow<T = any>(
     }
 
     if (adapter) {
-      adapter.removeKeys().catch((error) => {
-        console.error('[viewedRow] clear persist failed:', error);
-      });
+      enqueuePersistence(
+        () => adapter.removeKeys(),
+        '[viewedRow] clear persist failed:',
+      );
     }
   }
 

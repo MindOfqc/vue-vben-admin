@@ -26,6 +26,105 @@ function createAdapter(
 }
 
 describe('useViewedRow storage restore', () => {
+  it('does not restore a cleared mark when an earlier write finishes late', async () => {
+    const delayed = createDeferred<null>();
+    let stored: Array<number | string> = [];
+    const setKeys = vi.fn(async (keys: Array<number | string>) => {
+      await delayed.promise;
+      stored = keys;
+    });
+    const adapter = createAdapter({
+      removeKeys: vi.fn(async () => {
+        stored = [];
+      }),
+      setKeys,
+    });
+    const helper = useViewedRow({
+      keyField: 'id',
+      persist: { type: 'custom', storage: adapter },
+    });
+    await flush();
+    helper.markAsViewed({ id: 1 });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(setKeys).toHaveBeenCalled();
+    helper.clearViewed();
+    delayed.resolve(null);
+    await flush();
+    expect(stored).toEqual([]);
+  });
+  it('persists a newer mark after a previous write finishes', async () => {
+    const delayed = createDeferred<null>();
+    let stored: Array<number | string> = [];
+    const setKeys = vi.fn(async (keys: Array<number | string>) => {
+      if (keys.length === 1) await delayed.promise;
+      stored = keys;
+    });
+    const helper = useViewedRow({
+      keyField: 'id',
+      persist: { storage: createAdapter({ setKeys }), type: 'custom' },
+    });
+    await flush();
+    helper.markAsViewed({ id: 1 });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    helper.markAsViewed({ id: 2 });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    delayed.resolve(null);
+    await flush();
+    expect(stored).toEqual([1, 2]);
+  });
+  it('does not restore a mark from a pending debounced write after clearing', async () => {
+    let stored: Array<number | string> = [];
+    const helper = useViewedRow({
+      keyField: 'id',
+      persist: {
+        storage: createAdapter({
+          removeKeys: vi.fn(async () => {
+            stored = [];
+          }),
+          setKeys: vi.fn(async (keys) => {
+            stored = keys;
+          }),
+        }),
+        type: 'custom',
+      },
+    });
+    await flush();
+    helper.markAsViewed({ id: 1 });
+    helper.clearViewed();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(stored).toEqual([]);
+  });
+
+  it.each(['reject', 'throw'])(
+    'continues clearing after an adapter %s',
+    async (mode) => {
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+      let stored: Array<number | string> = [1];
+      const helper = useViewedRow({
+        keyField: 'id',
+        persist: {
+          storage: createAdapter({
+            removeKeys: vi.fn(async () => {
+              stored = [];
+            }),
+            setKeys: vi.fn(() => {
+              if (mode === 'throw') throw new Error('write failed');
+              return Promise.reject(new Error('write failed'));
+            }),
+          }),
+          type: 'custom',
+        },
+      });
+      await flush();
+      helper.markAsViewed({ id: 1 });
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      helper.clearViewed();
+      await flush();
+      expect(log).toHaveBeenCalled();
+      expect(stored).toEqual([]);
+      log.mockRestore();
+    },
+  );
   it('restores the stored keys once the adapter resolves', async () => {
     const adapter = createAdapter({
       getKeys: vi.fn(async () => [1, 2]),
