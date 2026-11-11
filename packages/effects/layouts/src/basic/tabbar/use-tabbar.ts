@@ -157,7 +157,7 @@ export function useTabbar() {
           toggleMaximize();
         },
         icon: contentIsMaximize.value ? Minimize2 : Fullscreen,
-        key: contentIsMaximize.value ? 'restore-maximize' : 'maximize',
+        key: 'maximize',
         text: contentIsMaximize.value
           ? $t('preferences.tabbar.contextMenu.restoreMaximize')
           : $t('preferences.tabbar.contextMenu.maximize'),
